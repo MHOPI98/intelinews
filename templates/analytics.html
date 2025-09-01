@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+    <section id="analytics" class="container mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold mb-6">Your Reading Analytics</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Pie Chart - Time by Tag -->
+            <div class="p-6 rounded-lg shadow-md bg-white dark:bg-gray-800">
+                <h3 class="text-xl font-semibold mb-4">Reading Time by Tag</h3>
+                <div class="h-64">
+                    <canvas id="tagPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bar Chart - Time by Tag -->
+            <div class="p-6 rounded-lg shadow-md bg-white dark:bg-gray-800">
+                <h3 class="text-xl font-semibold mb-4">Reading Time by Tag (minutes)</h3>
+                <div class="h-64">
+                    <canvas id="tagBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Reading Time -->
+        <div class="p-6 rounded-lg shadow-md bg-white dark:bg-gray-800 mt-6">
+            <h3 class="text-xl font-semibold mb-4">Daily Reading Time (minutes)</h3>
+            <div class="h-64">
+                <canvas id="dailyReadingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Include Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                fetch('/api/user_analytics')
+                    .then(response => response.json())
+                    .then(data => {
+                        renderTagPieChart(data);
+                        renderTagBarChart(data);
+                        renderDailyReadingChart(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching analytics data:', error);
+                        showErrorMessage();
+                    });
+
+                function showErrorMessage() {
+                    const containers = ['tagPieChart', 'tagBarChart', 'dailyReadingChart'];
+                    containers.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.innerHTML = '<p class="text-center py-8 text-gray-500">Error loading data</p>';
+                        }
+                    });
+                }
+
+                function renderTagPieChart(data) {
+                    const ctx = document.getElementById('tagPieChart');
+                    
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: data.tags,
+                            datasets: [{
+                                data: data.tag_minutes,
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.7)',
+                                    'rgba(54, 162, 235, 0.7)',
+                                    'rgba(255, 206, 86, 0.7)',
+                                    'rgba(75, 192, 192, 0.7)',
+                                    'rgba(153, 102, 255, 0.7)',
+                                    'rgba(255, 159, 64, 0.7)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.label}: ${context.raw.toFixed(1)} min`;
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    position: 'right'
+                                }
+                            }
+                        }
+                    });
+                }
+
+                function renderTagBarChart(data) {
+                    const ctx = document.getElementById('tagBarChart');
+                    
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.tags,
+                            datasets: [{
+                                label: 'Reading Time (minutes)',
+                                data: data.tag_minutes,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Minutes'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.raw.toFixed(1)} min`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                function renderDailyReadingChart(data) {
+                    const ctx = document.getElementById('dailyReadingChart');
+                    
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: [{
+                                label: 'Reading Time (minutes)',
+                                data: data.daily_minutes,
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 2,
+                                tension: 0.1,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Minutes'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Date'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.raw.toFixed(1)} min`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        </script>
+    </section>
+{% endblock %}
